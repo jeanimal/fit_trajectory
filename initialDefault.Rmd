@@ -1,0 +1,24 @@
+Jean's test
+========================================================
+
+I am going to demonstrate making stuff repeatable.  First just load required packages.
+
+```{r}
+library(ggplot2)
+library(lattice)
+```
+
+Now let's generate data in a repeatable way.  Notice we set a seed.
+```{r gen_data}
+set.seed(1233)
+x <- 1:10
+y <- round(rnorm(10, x, 1), 2)
+df <- data.frame(x, y)
+df
+```
+
+Now let's plot the data.  You should see the same thing I did because we used the same seed.
+```{r fig.width=7, fig.height=6}
+qplot(x, y, data = df)+coord_fixed()
+```
+

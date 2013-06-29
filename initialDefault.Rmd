@@ -5,20 +5,48 @@ I am going to demonstrate making stuff repeatable.  First just load required pac
 
 ```{r}
 library(ggplot2)
-library(lattice)
 ```
 
-Now let's generate data in a repeatable way.  Notice we set a seed.
+Now set some basic parameters for the data.
+```{r}
+maxSampleSize <- 50
+maxNumTrajectories <- 10
+maxNumSmoothersPerTrajectory <- 8
+```
+As a consequence of these settings, here is how much data we have to generate.
+```{r}
+n <- maxSampleSize * maxNumTrajectories * maxNumSmoothersPerTrajectory
+```
+Now let's generate data in a repeatable way.  Notice we set a seed so the same random sequence is generated every time it's run. We will use N(0,1) initially and transform the data later to different amounts of correlation and noise.
 ```{r gen_data}
 set.seed(1233)
-x <- 1:10
-y <- round(rnorm(10, x, 1), 2)
-df <- data.frame(x, y)
-df
+X_base <- matrix(rnorm(2*n), n, 2)
+colnames(X_base) <- c("x1", "x2")
+Y_noise <- c(rnorm(n))
+#colnames(Y_noise) <- c("y_noise")
+ggplot(as.data.frame(X_base), aes(x1,x2))+geom_point()+labs(title="Independent variables, correl=0")+xlim(-4,4)+ylim(-4,4)
+```
+ggplot reports missing values-- how did THAT happen?
+
+Here is the matrix governing the relationship of the independent variables
+```{r}
+sigma <- matrix(c(1, 0.9, 0.9, 1), 2, 2) 
 ```
 
-Now let's plot the data.  You should see the same thing I did because we used the same seed.
+FUNCTIONS
+```{r}
+transform <- function(sigma, X) {
+  M <- chol(sigma)
+  newX <- X %*% M
+  colnames(newX) <- colnames(X)
+  return (newX)
+}
+```
+
+
+Now use the transform function to compare data.  Plot of original data, plot of transformed data.  (You should see the same thing I did because we used the same seed to the initial rnorm.)
 ```{r fig.width=7, fig.height=6}
-qplot(x, y, data = df)+coord_fixed()
+X_correl_9 <- transform(sigma, X_base)
+ggplot(as.data.frame(X_correl_9), aes(x1,x2))+geom_point()+labs(title="Independent variables, correl=0.9")+xlim(-4,4)+ylim(-4,4)
 ```
 

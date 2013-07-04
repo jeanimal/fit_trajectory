@@ -1,4 +1,4 @@
-Jean's test
+suJean's test
 ========================================================
 
 I am going to demonstrate making stuff repeatable.  First just load required packages.
@@ -26,7 +26,7 @@ Y_noise <- c(rnorm(n))
 #colnames(Y_noise) <- c("y_noise")
 ggplot(as.data.frame(X_base), aes(x1,x2))+geom_point()+labs(title="Independent variables, correl=0")+xlim(-4,4)+ylim(-4,4)
 ```
-ggplot reports missing values-- how did THAT happen?
+ggplot reports missing values-- these are values outside of xlim and ylim.
 
 Here is the matrix governing the relationship of the independent variables
 ```{r}
@@ -50,3 +50,75 @@ X_correl_9 <- transform(sigma, X_base)
 ggplot(as.data.frame(X_correl_9), aes(x1,x2))+geom_point()+labs(title="Independent variables, correl=0.9")+xlim(-4,4)+ylim(-4,4)
 ```
 
+Now do settings to generate y data.
+```{r}
+b0 <- 0; b1 <- 1; b2 <- 1
+```
+
+FUNCTION
+```{r}
+gen2dLinearY <- function(X, noise, b0=0, b1=1, b2=1) {
+ new <- cbind(b0 +b1*X[,1] +b2*X[,2]+Y_noise, X[,1], X[,2])
+ colnames(new) <- c("y", colnames(X)) # TODO: remove hard coding
+ return(new)
+}
+```
+
+Then calculate Y and prepend to the X matrix.
+```{r}
+Xmatrix <- gen2dLinearY(X_base, Y_noise)
+```
+
+FUNCTIONS
+```{r}
+calcStartRow <- function(trajIndex, smootherIndex, numSmoothersPerTrajectory, maxSampleSize) {
+  (trajIndex-1)*numSmoothersPerTrajectory*maxSampleSize + (smootherIndex-1)*maxSampleSize + 1
+}
+fitRegDataFrame <- function (fittingData, formula, numTrajectories, numSmoothersPerTrajectory, minSampleSize, maxSampleSize, verbose=FALSE) {
+   regData <- data.frame()
+   for (trajIndex in 1:numTrajectories ) {
+       for (smootherIndex in 1:numSmoothersPerTrajectory) {
+      startRow <- calcStartRow(trajIndex, smootherIndex, numSmoothersPerTrajectory, maxSampleSize)
+      for (sampleDataIndex in minSampleSize:maxSampleSize) {
+                 if (verbose) {
+                    cat("using rows ", startRow, " to ", (startRow+sampleDataIndex-1), "\n" )
+                 }
+             reg <-  lm(formula, data = fittingData[startRow:(startRow+sampleDataIndex-1),])
+             regData <- rbind( regData, cbind( trajectoryIndex=trajIndex, smootherIndex=smootherIndex, sampleSize=sampleDataIndex, t(coef(reg)) ) )
+      }
+  }
+}
+return( regData )
+}
+```
+
+Now do some fits using the simplest linear model.
+```{r}
+fitFormula <- as.formula("y ~ x1 + x2")
+myRegData <- fitRegDataFrame(as.data.frame(Xmatrix), fitFormula, maxNumTrajectories, maxNumSmoothersPerTrajectory, 3, 20, verbose=FALSE)
+```
+
+Plot original fits.  (Pick an arbitrary smoother and plot just that one rather than averaging across smoothers.)
+
+```{r}
+# install.packages("ggplot2") # if never downloaded before
+library(ggplot2)
+#
+myRegDataToPlot <- subset(myRegData, smootherIndex==1)
+ggplot(myRegDataToPlot, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on uncorrelated data (smoother==1)")#+xlim(-4,4)+ylim(-4,4)
+# TODO: Title = typeOfFit + " on " + dataDesc
+```
+Notice how very messy it is!  
+
+The first fit with sample size 3 is especially bad.  Let's leave that one out and see how much is cleans things up.
+```{r}
+myRegDataToPlot <- subset(myRegData, smootherIndex==1 & sampleSize > 3)
+ggplot(myRegDataToPlot, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on uncorrelated data (smoother==1, sampleSize>3)")#+xlim(-4,4)+ylim(-4,4)
+```
+Still messy but less spread out.  Notice that the fit does not always head in the right direction.  Sometimes instead of going toward the true parameter value (1,1), it goes away from the it, as in trajectory 9.  (TODO: a close-up of trajectory 9 but we will need fixed scales-- same as in overall plot.  In fact, I should start with ONE fit trajectory and then show how plotting many gives a sense of the "force field," the pull coming from the shape of the data and the kind of fit.  In plotting one, it would also be awesome to use the same color as in the master plot.)
+
+Just for the sake of curiosity, here is another set of plots from smoother 2.  This is another sample from the data.  It has the same degree of "messiness."  Smoother 1 was not an atypical sample
+```{r}
+myRegDataToPlot <- subset(myRegData, smootherIndex==2 & sampleSize > 3)
+ggplot(myRegDataToPlot, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on uncorrelated data (smoother==2, sampleSize>3)")#+xlim(-4,4)+ylim(-4,4)
+```

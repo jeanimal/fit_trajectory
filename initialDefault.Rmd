@@ -115,10 +115,33 @@ The first fit with sample size 3 is especially bad.  Let's leave that one out an
 myRegDataToPlot <- subset(myRegData, smootherIndex==1 & sampleSize > 3)
 ggplot(myRegDataToPlot, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on uncorrelated data (smoother==1, sampleSize>3)")#+xlim(-4,4)+ylim(-4,4)
 ```
-Still messy but less spread out.  Notice that the fit does not always head in the right direction.  Sometimes instead of going toward the true parameter value (1,1), it goes away from the it, as in trajectory 9.  (TODO: a close-up of trajectory 9 but we will need fixed scales-- same as in overall plot.  In fact, I should start with ONE fit trajectory and then show how plotting many gives a sense of the "force field," the pull coming from the shape of the data and the kind of fit.  Smoothers are motivated by wanting to see the force field.  In plotting one trajectory at a time, it would also be awesome to use the same color as in the master plot.)
+Still messy but less spread out.  Notice that the fit does not always head in the right direction.  Sometimes instead of going toward the true parameter value (1,1), it goes away from the it, as in trajectory 9.  (TODO: a close-up of trajectory 9 but we will need fixed scales-- same as in overall plot.  In fact, I should start with ONE fit trajectory and then show how plotting many gives a sense of the "force field," the pull coming from the shape of the data and the kind of fit.  Smoothers are motivated by wanting to see the force field.  In plotting one trajectory at a time, it would also be awesome to use the same color as in the master plot.) (TODO: I can probably do subset in the ggplot command rather than as a pre-process.)
 
 Just for the sake of curiosity, here is another set of plots from smoother 2.  This is another sample from the data.  It has the same degree of "messiness."  Smoother 1 was not an atypical sample
 ```{r}
 myRegDataToPlot <- subset(myRegData, smootherIndex==2 & sampleSize > 3)
 ggplot(myRegDataToPlot, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on uncorrelated data (smoother==2, sampleSize>3)")#+xlim(-4,4)+ylim(-4,4)
 ```
+
+CORRELATED DATA
+Now let's doe the plots on correlated data.  This will not be very enlightening for individual trajectories-- so this is where seeing the "force field" across multiple fits will prove useful.
+```{r}
+sigma <- matrix(c(1, 0.9, 0.9, 1), 2, 2) # repeated as a reminder of how we got the data
+X_correl_9 <- transform(sigma, X_base)   # repeated as a reminder of how we got the data
+Xmatrix <- gen2dLinearY(X_correl_9, Y_noise)
+fitFormula <- as.formula("y ~ x1 + x2")
+myRegData <- fitRegDataFrame(as.data.frame(Xmatrix), fitFormula, maxNumTrajectories, maxNumSmoothersPerTrajectory, 3, 20, verbose=FALSE)
+myRegDataToPlot <- subset(myRegData, smootherIndex==1  & sampleSize > 3)
+ggplot(myRegDataToPlot, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on correlated (0.9) data (smoother==1)")#+xlim(-2,4)+ylim(-4,4)
+```
+The fit trajectories are still messy but clearly concentrated around a line diagonal to the right.  Fits quickly converge to this general area but then wander aimlessly along it.  The topography of the parameter space has ellpises with their major axis along the convergence line.  (See fungible weights article.  TODO: use ggplot to show ellipses.)
+
+By the time of a sample size of 20, they still settle in a wide range of places.  Trajectory 3 settled near (x1,x2)= (2,0), meaning x1 is much stronger than x2.  Trajectory 4 settled near (x1,x2)=(0,2), meaning x2 is much stronger than x1. Which is right?  Well, on highly correlated data, x1 is nearly interchangeable with x2, so the weights between them can slosh around as long as they add up to roughly 2.  WE know we generated the data with (x1,x2)=(1,1).  But the high correlation means it's very hard to converge there.
+(TODO: Save the regression objects so I can easily pull out p-values.)
+```{r}
+endingFit <- subset(myRegData, smootherIndex==1  & sampleSize==20)
+ggplot(endingFit, aes(x1, x2, color=as.factor(trajectoryIndex)))+geom_path()+geom_point()+coord_fixed()+labs(color="Trajectory")+labs(title="Raw regression fits on correlated (0.9) data (sampleSize==20)")
+```
+
+Notice the area they are converging to is perpendicular to the pattern of the correlated x data, which were roughly on the x1=x2 line.  This is not an accident.  Correlation is akin to the cosine of the angle.  No correlation has a cosine of 0, meaning orthogonal lines.  But we know x1 and x2 have a correlation of 0.9.  If we transformed our parameter space by bending x2 down toward x1 so that its cosine was __, then we would be representing the "true" parameter space. In this space, the fits would no longer be stretched out over a line-- they would seem to converge from all directions.  In other words the "fit field" would have all arrows pointing in toward (1,1). And the "fit topography" would be circles again rather than ellipses.
+TODO: Can ggplot show non-orthogonal axes??

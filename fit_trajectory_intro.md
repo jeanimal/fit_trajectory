@@ -5,14 +5,11 @@ Many science studies report results on highly correlated data.  For example, a s
 
 Be suspcicious of such studies-- many of them are shaky science.  Many of them accidentally use insufficent sample sizes, given the data and fitting method.  But you don't need to be a sample size expert to understand why it's shaky.  Looking at the fit trajectory-- how the fitted values change with sample size, can make it clear.  This is a short intro to the technique.
 
+We will begin by generating data and fitting it, showing the fit trajectories.  Then we will discuss how the lessons learned apply to fitting empirical data.
 
+Generating data
 
-```r
-library(ggplot2)
-```
-
-
-Now set some basic parameters for the data.
+Set some basic parameters for the data we are going to generate
 
 ```r
 maxSampleSize <- 50
@@ -33,7 +30,10 @@ set.seed(1233)
 X_base <- matrix(rnorm(2 * n), n, 2)
 colnames(X_base) <- c("x1", "x2")
 Y_noise <- c(rnorm(n))
-# colnames(Y_noise) <- c('y_noise')
+# colnames(Y_noise) <- c('y_noise') install.packages('ggplot2') # if never
+# downloaded before
+library(ggplot2)
+#
 ggplot(as.data.frame(X_base), aes(x1, x2)) + geom_point() + labs(title = "Independent variables, correl=0") + 
     xlim(-4, 4) + ylim(-4, 4)
 ```
@@ -44,9 +44,8 @@ ggplot(as.data.frame(X_base), aes(x1, x2)) + geom_point() + labs(title = "Indepe
 
 ![plot of chunk gen_data](figure/gen_data.png) 
 
-ggplot reports missing values-- these are values outside of xlim and ylim.
 
-Here is the matrix governing the relationship of the independent variables
+Here is the matrix governing the relationship of the independent variables when they are correlated.  This is a correlation of 0.9, or 90%.  (Perfect correlation is 1.0, or 100%).
 
 ```r
 sigma <- matrix(c(1, 0.9, 0.9, 1), 2, 2)
@@ -78,7 +77,7 @@ ggplot(as.data.frame(X_correl_9), aes(x1, x2)) + geom_point() + labs(title = "In
 ## Warning: Removed 1 rows containing missing values (geom_point).
 ```
 
-![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
 
 
 Now do settings to generate y data.
@@ -162,7 +161,7 @@ ggplot(myRegDataToPlot, aes(x1, x2, color = as.factor(trajectoryIndex))) + geom_
     geom_point() + coord_fixed() + labs(color = "Trajectory") + labs(title = "Raw regression fits on uncorrelated data (smoother==1)")  #+xlim(-4,4)+ylim(-4,4)
 ```
 
-![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12.png) 
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
 
 ```r
 # TODO: Title = typeOfFit + ' on ' + dataDesc
@@ -178,7 +177,7 @@ ggplot(myRegDataToPlot, aes(x1, x2, color = as.factor(trajectoryIndex))) + geom_
     geom_point() + coord_fixed() + labs(color = "Trajectory") + labs(title = "Raw regression fits on uncorrelated data (smoother==1, sampleSize>3)")  #+xlim(-4,4)+ylim(-4,4)
 ```
 
-![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-13.png) 
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12.png) 
 
 Still messy but less spread out.  Notice that the fit does not always head in the right direction.  Sometimes instead of going toward the true parameter value (1,1), it goes away from the it, as in trajectory 9.  (TODO: a close-up of trajectory 9 but we will need fixed scales-- same as in overall plot.  In fact, I should start with ONE fit trajectory and then show how plotting many gives a sense of the "force field," the pull coming from the shape of the data and the kind of fit.  Smoothers are motivated by wanting to see the force field.  In plotting one trajectory at a time, it would also be awesome to use the same color as in the master plot.) (TODO: I can probably do subset in the ggplot command rather than as a pre-process.)
 
@@ -190,7 +189,7 @@ ggplot(myRegDataToPlot, aes(x1, x2, color = as.factor(trajectoryIndex))) + geom_
     geom_point() + coord_fixed() + labs(color = "Trajectory") + labs(title = "Raw regression fits on uncorrelated data (smoother==2, sampleSize>3)")  #+xlim(-4,4)+ylim(-4,4)
 ```
 
-![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14.png) 
+![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-13.png) 
 
 
 CORRELATED DATA
@@ -208,7 +207,7 @@ ggplot(myRegDataToPlot, aes(x1, x2, color = as.factor(trajectoryIndex))) + geom_
     geom_point() + coord_fixed() + labs(color = "Trajectory") + labs(title = "Raw regression fits on correlated (0.9) data (smoother==1)")  #+xlim(-2,4)+ylim(-4,4)
 ```
 
-![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15.png) 
+![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14.png) 
 
 The fit trajectories are still messy but clearly concentrated around a line diagonal to the right.  Fits quickly converge to this general area but then wander aimlessly along it.  The topography of the parameter space has ellpises with their major axis along the convergence line.  (See fungible weights article.  TODO: use ggplot to show ellipses.)
 
@@ -226,7 +225,7 @@ ggplot(endingFit, aes(x1, x2, color = as.factor(trajectoryIndex))) + geom_path()
 ## adjust the group aesthetic?
 ```
 
-![plot of chunk unnamed-chunk-16](figure/unnamed-chunk-16.png) 
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15.png) 
 
 
 Notice the area they are converging to is perpendicular to the pattern of the correlated x data, which were roughly on the x1=x2 line.  This is not an accident.  Correlation is akin to the cosine of the angle.  No correlation has a cosine of 0, meaning orthogonal lines.  But we know x1 and x2 have a correlation of 0.9.  If we transformed our parameter space by bending x2 down toward x1 so that its cosine was __, then we would be representing the "true" parameter space. In this space, the fits would no longer be stretched out over a line-- they would seem to converge from all directions.  In other words the "fit field" would have all arrows pointing in toward (1,1). And the "fit topography" would be circles again rather than ellipses.  (TODO: Can ggplot show non-orthogonal axes??)

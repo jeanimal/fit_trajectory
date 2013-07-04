@@ -1,7 +1,10 @@
-suJean's test
+How fit trajectories illuminate shaky science
 ========================================================
 
-I am going to demonstrate making stuff repeatable.  First just load required packages.
+Many science studies report results on highly correlated data.  For example, a study of high school drop-outs might find that low student science scores are a strong predictor while math scores are not.
+
+Be suspcicious of such studies-- many of them are shaky science.  Many of them accidentally use insufficent sample sizes, given the data and fitting method.  But you don't need to be a sample size expert to understand why it's shaky.  Looking at the fit trajectory-- how the fitted values change with sample size, can make it clear.  This is a short intro to the technique.
+
 
 
 ```r
@@ -226,5 +229,18 @@ ggplot(endingFit, aes(x1, x2, color = as.factor(trajectoryIndex))) + geom_path()
 ![plot of chunk unnamed-chunk-16](figure/unnamed-chunk-16.png) 
 
 
-Notice the area they are converging to is perpendicular to the pattern of the correlated x data, which were roughly on the x1=x2 line.  This is not an accident.  Correlation is akin to the cosine of the angle.  No correlation has a cosine of 0, meaning orthogonal lines.  But we know x1 and x2 have a correlation of 0.9.  If we transformed our parameter space by bending x2 down toward x1 so that its cosine was __, then we would be representing the "true" parameter space. In this space, the fits would no longer be stretched out over a line-- they would seem to converge from all directions.  In other words the "fit field" would have all arrows pointing in toward (1,1). And the "fit topography" would be circles again rather than ellipses.
-TODO: Can ggplot show non-orthogonal axes??
+Notice the area they are converging to is perpendicular to the pattern of the correlated x data, which were roughly on the x1=x2 line.  This is not an accident.  Correlation is akin to the cosine of the angle.  No correlation has a cosine of 0, meaning orthogonal lines.  But we know x1 and x2 have a correlation of 0.9.  If we transformed our parameter space by bending x2 down toward x1 so that its cosine was __, then we would be representing the "true" parameter space. In this space, the fits would no longer be stretched out over a line-- they would seem to converge from all directions.  In other words the "fit field" would have all arrows pointing in toward (1,1). And the "fit topography" would be circles again rather than ellipses.  (TODO: Can ggplot show non-orthogonal axes??)
+
+Application to drop-out rates
+
+Back to the study of high school drop-out rates.  Student math scores and science scores are highly correlated.  So the fitted regression of drop-out rate on both scores can end up anywhere along the x2 = -x1 + intercept.  One sample's fit trajector might end with math scores a strong predictor while science scores are not.  Another sample might prefer science scores.  This may look like the studies are contradicting each other.  But they are just shaky science due to highly correlated data.
+
+What is the alternative?  The best is to increase the sample size.  (TODO: Plot examples)  But there are less than 100 public high schools in Chicago, so you cannot get a really big sample of their drop-out rates.  
+
+So another alternative is to use a model with a simpler fitting method.  It extracts less information from the data.  For this to be a good fit, the modeler must add their prior knowledge of the domain to make up for it.  A biased model can be really bad if it's not well-matched to the domain.  Some examples are:
+
+1. The modeler already suspects that math score and science score are highly correlated.  So remove one of them.  For example, regress on just math score.  This will make the fit much more stable, meaning that re-running the study will produce similar results.  (TODO: Plot)
+
+2. Use an equal-weight or unit-weight linear model.  That is, only estimate plus or minus 1 for each predictor.  (TODO: build code to do equal-weight fit.  Than fit it)
+
+3. Other ideas?
